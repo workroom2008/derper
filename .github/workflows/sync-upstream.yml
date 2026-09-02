@@ -20,7 +20,7 @@ jobs:
 
       - name: Sync upstream
         run: |
-          git remote add upstream https://github.com/yangchuansheng/derper.git
+          git remote add upstream https://github.com/workroom2008/derper.git
           git fetch upstream
           git rebase upstream/main || {
             echo "Rebase failed, aborting"

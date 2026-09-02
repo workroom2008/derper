@@ -115,6 +115,7 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=${{ needs.get-latest-tag.outputs.tag }}
+            type=raw,value=latest
 
       - name: Build and push Docker images to ghcr.io
         uses: docker/build-push-action@v5
