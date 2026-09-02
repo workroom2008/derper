@@ -1,0 +1,30 @@
+name: Sync Fork from Upstream
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # 每天北京时间 14:00
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync upstream
+        run: |
+          git remote add upstream https://github.com/yangchuansheng/derper.git
+          git fetch upstream
+          git rebase upstream/main || {
+            echo "Rebase failed, aborting"
+            git rebase --abort
+            exit 1
+          }
+          git push origin main

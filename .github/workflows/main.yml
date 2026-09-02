@@ -76,6 +76,15 @@ jobs:
       - name: modify
         run: |
           sed -i '/hi.ServerName != m.hostname/,+2d' build_src/tailscale/cmd/derper/cert.go
+          sed -i 's|This is a <a href="https://tailscale.com/">Tailscale</a> DERP server.|这是一个自用的 <a href="https://tailscale.com/">Tailscale</a> DERP 中继服务器。|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|It provides STUN, interactive connectivity establishment, and relaying of end-to-end encrypted traffic|为 Tailscale 客户端提供 STUN、ICE 协商和端到端加密流量中继服务。|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|for Tailscale clients.||g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|If you suspect abuse, please contact <a href="mailto:security@tailscale.com">security@tailscale.com</a>.|如有问题请联系管理员。|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|Tailscale Security Policies|安全策略|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|Tailscale Acceptable Use Policies|使用条款|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|About DERP|DERP 说明|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|Protocol &amp; Go docs|协议文档|g' build_src/tailscale/cmd/derper/derper.go
+          sed -i 's|How to run a DERP server|部署指南|g' build_src/tailscale/cmd/derper/derper.go
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
