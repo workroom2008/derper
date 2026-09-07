@@ -28,37 +28,30 @@ jobs:
     name: Get latest tag
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout derper
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          repository: tailscale/tailscale
-      - name: Get derper latest tag
-        id: tag
-        run: echo "tag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> "$GITHUB_OUTPUT"
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - name: Get my latest tag
-        id: mytag
-        run: echo "mytag=$(git describe --tags `git rev-list --tags --max-count=1`)" >> "$GITHUB_OUTPUT"
-      - name: Add tag
-        id: addtag
-        if: steps.tag.outputs.tag != steps.mytag.outputs.mytag
-        shell: bash --noprofile --norc {0}
+      - name: Check upstream latest release
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git tag ${{ steps.tag.outputs.tag }} || true
-          git push origin ${{ steps.tag.outputs.tag }} || true
-          echo "addtag=true" >> "$GITHUB_OUTPUT"
+          UPSTREAM=$(gh api repos/tailscale/tailscale/releases/latest --jq .tag_name)
+          echo "tag=$UPSTREAM" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/${UPSTREAM}" >/dev/null 2>&1; then
+            echo "addtag=false" >> "$GITHUB_OUTPUT"
+          else
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git tag "$UPSTREAM" || true
+            git push origin "$UPSTREAM" || true
+            echo "addtag=true" >> "$GITHUB_OUTPUT"
+          fi
 
     outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-      addtag: ${{ steps.addtag.outputs.addtag }}
+      tag: ${{ steps.check.outputs.tag }}
+      addtag: ${{ steps.check.outputs.addtag }}
 
   build-docker-image:
     needs: get-latest-tag
@@ -117,6 +110,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
