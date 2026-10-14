@@ -1,0 +1,42 @@
+name: Check derper upstream tag
+
+# 每天检查 tailscale 最新正式版 release，没有对应 tag 就打一个。
+# 不构建、不推送镜像——自动构建已停用（GitHub 账户额度超额）。
+# 需要构建时手动跑 main.yml。
+
+on:
+  schedule:
+    - cron: "11 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: check-derper-upstream
+  cancel-in-progress: false
+
+jobs:
+  get-latest-tag:
+    name: Get latest tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check upstream latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          UPSTREAM=$(gh api repos/tailscale/tailscale/releases/latest --jq .tag_name)
+          echo "上游最新正式版: $UPSTREAM"
+          if git ls-remote --exit-code --tags origin "refs/tags/${UPSTREAM}" >/dev/null 2>&1; then
+            echo "✅ tag ${UPSTREAM} 已存在，无需操作"
+          else
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+            git tag "$UPSTREAM" || true
+            git push origin "$UPSTREAM" || true
+            echo "🏷️ 已打 tag ${UPSTREAM}（未构建镜像，需手动跑 main.yml）"
+          fi

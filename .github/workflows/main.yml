@@ -1,9 +1,9 @@
 name: Build and push derper Docker image
 
+# 自动构建已停用（GitHub 账户额度超额），仅保留手动触发。
+# 查上游最新 release 并打 tag 的定时任务已拆到 check-upstream-tag.yml。
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "11 0 * * *"
 
 permissions:
   actions: write
@@ -55,7 +55,8 @@ jobs:
 
   build-docker-image:
     needs: get-latest-tag
-    if: needs.get-latest-tag.outputs.addtag == 'true'
+    # 手动触发时始终构建（该 job 已无定时触发，不存在重复构建问题）
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
