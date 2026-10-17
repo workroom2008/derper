@@ -15,9 +15,10 @@ RUN set -ex; \
     cat .envrc /etc/os-release; \
     source .envrc; \
     CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -o /opt/derper -ldflags="\
+      -s -w \
       -X tailscale.com/version.longStamp=$VERSION_LONG \
       -X tailscale.com/version.shortStamp=$VERSION_SHORT \
-      -X tailscale.com/version.gitCommitStamp=$VERSION_GIT_HASH" -ldflags "-s -w"  cmd/derper/*.go
+      -X tailscale.com/version.gitCommitStamp=$VERSION_GIT_HASH" ./cmd/derper
 
 FROM alpine
 

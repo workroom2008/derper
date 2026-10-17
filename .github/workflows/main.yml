@@ -63,10 +63,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: clone tailscale
+      - name: clone tailscale (钉最新 release tag，保证可复现)
+        # 必须 checkout 到 get-latest-tag 产出的 tag：main 上 cmd/derper 会新增
+        # derper_linux.go / derper_other.go / saved_syn_linux.go，与 release tag 结构不同
+        env:
+          TS_TAG: ${{ needs.get-latest-tag.outputs.tag }}
         run: |
           mkdir build_src
           git clone https://github.com/tailscale/tailscale build_src/tailscale
+          git -C build_src/tailscale checkout --detach "$TS_TAG"
+          git -C build_src/tailscale describe --tags --always
 
       - name: modify
         run: |
