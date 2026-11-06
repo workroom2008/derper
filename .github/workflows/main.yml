@@ -91,7 +91,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       #- name: Get tag
@@ -106,7 +106,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            ghcr.io/${{ github.actor }}/derper
+            ghcr.io/${{ github.repository_owner }}/derper
           tags: |
             type=ref,event=tag
             type=raw,value=${{ needs.get-latest-tag.outputs.tag }}
