@@ -1,7 +1,7 @@
 name: Build and push derper Docker image
 
-# 自动构建已停用（GitHub 账户额度超额），仅保留手动触发。
-# 查上游最新 release 并打 tag 的定时任务已拆到 check-upstream-tag.yml。
+# 构建由 check-upstream-tag.yml 在发现未构建的版本时自动触发，也可手动运行。
+# 查上游最新 release 并打 tag 的定时任务在 check-upstream-tag.yml。
 on:
   workflow_dispatch:
 
@@ -122,3 +122,11 @@ jobs:
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      # 构建成功才打标记，失败时 check-upstream-tag.yml 次日重新触发
+      - name: Mark version as built
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "built-${{ needs.get-latest-tag.outputs.tag }}"
+          git push origin "refs/tags/built-${{ needs.get-latest-tag.outputs.tag }}"

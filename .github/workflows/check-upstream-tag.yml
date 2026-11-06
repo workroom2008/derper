@@ -1,9 +1,8 @@
 name: Check derper upstream tag
 
-# 每天检查 tailscale 最新正式版 release，没有对应 tag 就打一个。
-# 不构建、不推送镜像——自动构建已停用（GitHub 账户额度超额）。
-# 需要构建时手动跑 main.yml。
-
+# 每天检查 tailscale 最新正式版 release：没有对应 tag 就打一个，
+# 没有 built-<tag> 标记就自动触发 main.yml 构建镜像。
+# built-<tag> 由 main.yml 构建成功后才打，构建失败次日会自动重试。
 on:
   schedule:
     - cron: "11 0 * * *"
@@ -11,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: check-derper-upstream
@@ -20,17 +20,22 @@ jobs:
   get-latest-tag:
     name: Get latest tag
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+      build: ${{ steps.check.outputs.build }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Check upstream latest release
+        id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           UPSTREAM=$(gh api repos/tailscale/tailscale/releases/latest --jq .tag_name)
           echo "上游最新正式版: $UPSTREAM"
+          echo "tag=$UPSTREAM" >> "$GITHUB_OUTPUT"
           if git ls-remote --exit-code --tags origin "refs/tags/${UPSTREAM}" >/dev/null 2>&1; then
             echo "✅ tag ${UPSTREAM} 已存在，无需操作"
           else
@@ -38,5 +43,25 @@ jobs:
             git config --local user.name "github-actions[bot]"
             git tag "$UPSTREAM" || true
             git push origin "$UPSTREAM" || true
-            echo "🏷️ 已打 tag ${UPSTREAM}（未构建镜像，需手动跑 main.yml）"
+            echo "🏷️ 已打 tag ${UPSTREAM}"
           fi
+          if git ls-remote --exit-code --tags origin "refs/tags/built-${UPSTREAM}" >/dev/null 2>&1; then
+            echo "✅ ${UPSTREAM} 镜像已构建过，跳过"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "🆕 ${UPSTREAM} 镜像未构建，触发构建"
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  trigger-build:
+    name: Trigger image build
+    needs: get-latest-tag
+    if: needs.get-latest-tag.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch main.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run main.yml --repo "$GITHUB_REPOSITORY" --ref main
