@@ -128,5 +128,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "built-${{ needs.get-latest-tag.outputs.tag }}"
-          git push origin "refs/tags/built-${{ needs.get-latest-tag.outputs.tag }}"
+          TAG="built-${{ needs.get-latest-tag.outputs.tag }}"
+          # 手动重复构建同一版本时 tag 已存在，跳过即可，避免整条 run 误报 failure
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "tag $TAG already exists, skip"
+            exit 0
+          fi
+          git tag "$TAG"
+          git push origin "refs/tags/$TAG"
